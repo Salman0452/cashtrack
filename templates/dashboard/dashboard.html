@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load transaction_filters %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Dashboard</h2>
+            <p class="text-muted mb-0">Overview of your shop's finances</p>
+        </div>
+        <a href="{% url 'transactions:create' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>New Transaction
+        </a>
+    </div>
+    
+    <!-- Key Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Total Cash in Hand -->
+        <div class="col-md-4">
+            <div class="stat-card {% if total_cash_in_hand >= 0 %}success{% else %}danger{% endif %}">
+                <div class="d-flex align-items-center">
+                    <div class="icon me-3">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="text-muted small mb-1">Cash in Hand</div>
+                        <h3 class="mb-0 fw-bold">PKR {{ total_cash_in_hand|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Total Profit -->
+        <div class="col-md-4">
+            <div class="stat-card primary">
+                <div class="d-flex align-items-center">
+                    <div class="icon me-3">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="text-muted small mb-1">Total Profit (All Time)</div>
+                        <h3 class="mb-0 fw-bold">PKR {{ total_profit|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Today's Profit -->
+        <div class="col-md-4">
+            <div class="stat-card warning">
+                <div class="d-flex align-items-center">
+                    <div class="icon me-3">
+                        <i class="bi bi-trophy"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="text-muted small mb-1">Today's Profit</div>
+                        <h3 class="mb-0 fw-bold">PKR {{ today_profit|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Today's Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 text-info">
+                            <i class="bi bi-calendar-check" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Today's Transactions</div>
+                            <h5 class="mb-0 fw-bold text-info">{{ today_transactions_count }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 text-success">
+                            <i class="bi bi-arrow-down-circle" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Today's Cash In</div>
+                            <h5 class="mb-0 fw-bold text-success">PKR {{ today_cash_in|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 text-danger">
+                            <i class="bi bi-arrow-up-circle" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Today's Cash Out</div>
+                            <h5 class="mb-0 fw-bold text-danger">PKR {{ today_cash_out|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 {% if today_net >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                            <i class="bi bi-calculator" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Today's Net</div>
+                            <h5 class="mb-0 fw-bold {% if today_net >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                                PKR {{ today_net|floatformat:2 }}
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="card">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Recent Transactions</h5>
+                <a href="{% url 'transactions:list' %}" class="btn btn-sm btn-outline-primary">
+                    View All <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if recent_transactions %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Fee</th>
+                            <th>Payment Mode</th>
+                            <th>By</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in recent_transactions %}
+                        <tr>
+                            <td>
+                                <small>{{ transaction.created_at|date:"M d, Y" }}<br>
+                                <span class="text-muted">{{ transaction.created_at|time:"h:i A" }}</span></small>
+                            </td>
+                            <td>
+                                {% if transaction.is_cash_in %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-arrow-down me-1"></i>Cash In
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-arrow-up me-1"></i>Cash Out
+                                    </span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">{{ transaction.get_transaction_type_display }}</small>
+                            </td>
+                            <td>
+                                <strong class="{% if transaction.is_cash_in %}text-success{% else %}text-danger{% endif %}">
+                                    {% if transaction.is_cash_in %}+{% else %}-{% endif %}
+                                    PKR {{ transaction.amount|floatformat:2 }}
+                                </strong>
+                            </td>
+                            <td>PKR {{ transaction.fee|floatformat:2 }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ transaction.get_payment_mode_display }}</span>
+                            </td>
+                            <td><small>{{ transaction.created_by.username }}</small></td>
+                            <td class="text-end">
+                                <a href="{% url 'transactions:detail' transaction.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'transactions:update' transaction.pk %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">No transactions yet</p>
+                <a href="{% url 'transactions:create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Create First Transaction
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

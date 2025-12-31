@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Update{% else %}New{% endif %} Bill{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-4">
+                <h2 class="fw-bold">
+                    {% if object %}
+                        <i class="bi bi-pencil me-2"></i>Update Bill
+                    {% else %}
+                        <i class="bi bi-plus-circle me-2"></i>Add New Bill
+                    {% endif %}
+                </h2>
+                <p class="text-muted">{% if object %}Edit existing bill{% else %}Create a new bill record{% endif %}</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-body p-4">
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.customer_id.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.customer_id.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.customer_id }}
+                            {% if form.customer_id.errors %}
+                                <div class="text-danger small mt-1">{{ form.customer_id.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>Customer reference number or ID
+                            </small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.customer_name.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.customer_name.label }}
+                            </label>
+                            {{ form.customer_name }}
+                            {% if form.customer_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.customer_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label for="{{ form.amount.id_for_label }}" class="form-label fw-semibold">
+                                    {{ form.amount.label }}
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-currency-rupee"></i></span>
+                                    {{ form.amount }}
+                                </div>
+                                {% if form.amount.errors %}
+                                    <div class="text-danger small mt-1">{{ form.amount.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <label for="{{ form.fee.id_for_label }}" class="form-label fw-semibold">
+                                    {{ form.fee.label }}
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-percent"></i></span>
+                                    {{ form.fee }}
+                                </div>
+                                {% if form.fee.errors %}
+                                    <div class="text-danger small mt-1">{{ form.fee.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.due_date.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.due_date.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+                                {{ form.due_date }}
+                            </div>
+                            {% if form.due_date.errors %}
+                                <div class="text-danger small mt-1">{{ form.due_date.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>Select the bill due date from calendar
+                            </small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.note.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.note.label }}
+                            </label>
+                            {{ form.note }}
+                            {% if form.note.errors %}
+                                <div class="text-danger small mt-1">{{ form.note.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{% url 'bills:list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>
+                                {% if object %}Update Bill{% else %}Save Bill{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

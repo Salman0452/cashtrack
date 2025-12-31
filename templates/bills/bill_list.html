@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+
+{% block title %}Bills Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold mb-1">
+                        <i class="bi bi-receipt me-2"></i>Bills Management
+                    </h2>
+                    <p class="text-muted mb-0">Track and manage customer bill payments</p>
+                </div>
+                <a href="{% url 'bills:create' %}" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Bill
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 text-primary">
+                            <i class="bi bi-receipt-cutoff" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Total Bills</div>
+                            <h4 class="mb-0 fw-bold">{{ total_bills }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 text-warning">
+                            <i class="bi bi-clock-history" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Pending</div>
+                            <h4 class="mb-0 fw-bold text-warning">{{ pending_bills }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 text-success">
+                            <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Paid</div>
+                            <h4 class="mb-0 fw-bold text-success">{{ paid_bills }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 text-danger">
+                            <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Overdue</div>
+                            <h4 class="mb-0 fw-bold text-danger">{{ overdue_bills }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bills by Due Date -->
+    {% if bills_by_date %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-calendar-event me-2"></i>Upcoming Bills by Due Date
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Due Date</th>
+                                    <th>Number of Bills</th>
+                                    <th>Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for date_group in bills_by_date %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ date_group.due_date|date:"M d, Y" }}</strong>
+                                        {% if date_group.due_date == today %}
+                                        <span class="badge bg-warning ms-2">Today</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ date_group.count }} bills</span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">PKR {{ date_group.total_amount|floatformat:2 }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All</option>
+                                <option value="PENDING" {% if request.GET.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                                <option value="PAID" {% if request.GET.status == 'PAID' %}selected{% endif %}>Paid</option>
+                                <option value="OVERDUE" {% if request.GET.status == 'OVERDUE' %}selected{% endif %}>Overdue</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Customer ID</label>
+                            <input type="text" name="customer_id" class="form-control" placeholder="Customer ID" value="{{ request.GET.customer_id }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Search</label>
+                            <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bills List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">All Bills</h5>
+                    <div>
+                        <button type="button" class="btn btn-success btn-sm me-2" id="bulkMarkPaidBtn" style="display:none;" onclick="submitBulkMarkPaid()">
+                            <i class="bi bi-check-circle me-1"></i>Mark Selected as Paid (<span id="selectedCount">0</span>)
+                        </button>
+                        <span class="text-muted">{{ page_obj.paginator.count }} bills</span>
+                    </div>
+                </div>
+                <form id="bulkMarkPaidForm" method="post" action="{% url 'bills:bulk_mark_paid' %}">
+                    {% csrf_token %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll(this)">
+                                </th>
+                                <th>Customer ID</th>
+                                <th>Customer Name</th>
+                                <th>Amount</th>
+                                <th>Fee</th>
+                                <th>Total</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bill in bills %}
+                            <tr class="{% if bill.is_overdue %}table-danger{% endif %}">
+                                <td>
+                                    {% if bill.status != 'PAID' %}
+                                    <input type="checkbox" class="form-check-input bill-checkbox" name="bill_ids" value="{{ bill.id }}" onchange="updateSelectedCount()">
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ bill.customer_id }}</strong></td>
+                                <td>{{ bill.customer_name|default:"-" }}</td>
+                                <td>PKR {{ bill.amount|floatformat:2 }}</td>
+                                <td>PKR {{ bill.fee|floatformat:2 }}</td>
+                                <td><strong>PKR {{ bill.total_amount|floatformat:2 }}</strong></td>
+                                <td>
+                                    {{ bill.due_date|date:"M d, Y" }}
+                                    {% if bill.is_overdue %}
+                                    <br><span class="badge bg-danger small">Overdue</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if bill.status == 'PAID' %}
+                                    <span class="badge bg-success">Paid</span>
+                                    {% elif bill.is_overdue %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ bill.created_at|date:"M d" }}</small></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'bills:detail' bill.pk %}" class="btn btn-outline-primary" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if bill.status != 'PAID' %}
+                                        <a href="{% url 'bills:update' bill.pk %}" class="btn btn-outline-secondary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'bills:mark_paid' bill.pk %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Mark as Paid" onclick="return confirm('Mark as paid?');">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                    No bills found
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                </form>
+
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="card-footer bg-white">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0 justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if query_string %}&{{ query_string }}{% endif %}">First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}">Last</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.bill-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.bill-checkbox:checked');
+    const count = checkboxes.length;
+    const btn = document.getElementById('bulkMarkPaidBtn');
+    const countSpan = document.getElementById('selectedCount');
+    
+    if (count > 0) {
+        btn.style.display = 'inline-block';
+        countSpan.textContent = count;
+    } else {
+        btn.style.display = 'none';
+        document.getElementById('selectAll').checked = false;
+    }
+}
+
+function submitBulkMarkPaid() {
+    const checkboxes = document.querySelectorAll('.bill-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Please select at least one bill');
+        return;
+    }
+    
+    if (confirm(`Mark ${checkboxes.length} bill(s) as paid and create transactions?`)) {
+        document.getElementById('bulkMarkPaidForm').submit();
+    }
+}
+</script>
+{% endblock %}

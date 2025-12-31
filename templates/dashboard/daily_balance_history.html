@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Daily Balance History - CashTrack{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar3"></i> Daily Balance History</h2>
+        <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                           value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <a href="{% url 'dashboard:daily_balance_history' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Balance Summary -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Current Cash in Hand</h5>
+                    <h2 class="mb-0">Rs. {{ current_balance|floatformat:2 }}</h2>
+                    <small>As of {{ end_date }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Balance Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Daily Balance Records</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th class="text-end">Opening Balance</th>
+                            <th class="text-end">Cash In</th>
+                            <th class="text-end">Cash Out</th>
+                            <th class="text-end">Fees Earned</th>
+                            <th class="text-end">Net Change</th>
+                            <th class="text-end">Closing Balance</th>
+                            <th class="text-center">Transactions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in daily_data %}
+                        <tr {% if day.is_today %}class="table-info"{% endif %}>
+                            <td>
+                                <strong>{{ day.date|date:"D, d M Y" }}</strong>
+                                {% if day.is_today %}
+                                    <span class="badge bg-info ms-2">Today</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">Rs. {{ day.opening_balance|floatformat:2 }}</td>
+                            <td class="text-end text-success">
+                                {% if day.cash_in > 0 %}
+                                    +Rs. {{ day.cash_in|floatformat:2 }}
+                                {% else %}
+                                    Rs. 0.00
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-danger">
+                                {% if day.cash_out > 0 %}
+                                    -Rs. {{ day.cash_out|floatformat:2 }}
+                                {% else %}
+                                    Rs. 0.00
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-primary">Rs. {{ day.fee|floatformat:2 }}</td>
+                            <td class="text-end {% if day.net_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {% if day.net_change >= 0 %}+{% endif %}Rs. {{ day.net_change|floatformat:2 }}
+                            </td>
+                            <td class="text-end">
+                                <strong>Rs. {{ day.closing_balance|floatformat:2 }}</strong>
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'transactions:list' %}?date={{ day.date|date:'Y-m-d' }}" 
+                                   class="badge bg-secondary">
+                                    {{ day.transaction_count }} transaction{{ day.transaction_count|pluralize }}
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                No transactions found for the selected date range
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Text -->
+    <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle"></i>
+        <strong>How to read this report:</strong>
+        <ul class="mb-0 mt-2">
+            <li><strong>Opening Balance:</strong> Cash you had at the start of the day (previous day's closing balance)</li>
+            <li><strong>Cash In:</strong> Total cash received during the day</li>
+            <li><strong>Cash Out:</strong> Total cash given out during the day</li>
+            <li><strong>Net Change:</strong> Cash In minus Cash Out (how much cash changed during the day)</li>
+            <li><strong>Closing Balance:</strong> Cash you had at the end of the day (Opening Balance + Net Change)</li>
+            <li><strong>Fees Earned:</strong> Your profit/commission for the day</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    .table td, .table th {
+        vertical-align: middle;
+    }
+    
+    .text-success {
+        color: #198754 !important;
+    }
+    
+    .text-danger {
+        color: #dc3545 !important;
+    }
+    
+    .text-primary {
+        color: #0d6efd !important;
+    }
+    
+    .table-info {
+        background-color: #cfe2ff !important;
+    }
+</style>
+{% endblock %}

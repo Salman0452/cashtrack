@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% load transaction_filters %}
+
+{% block title %}All Transactions{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">All Transactions</h2>
+            <p class="text-muted mb-0">Complete history with filters</p>
+        </div>
+        <a href="{% url 'transactions:create' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>New Transaction
+        </a>
+    </div>
+    
+    <!-- Filters Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-funnel me-2"></i>Filters
+                </h6>
+                <small class="text-muted">
+                    <i class="bi bi-shield-lock-fill me-1"></i>Transactions are protected (no delete)
+                </small>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filterForm">
+                <div class="row g-3">
+                    <!-- Date Filter -->
+                    <div class="col-md-3">
+                        <label class="form-label">Date Range</label>
+                        <select name="date" class="form-select" onchange="toggleCustomDate()">
+                            <option value="">All Time</option>
+                            <option value="today" {% if current_date == 'today' %}selected{% endif %}>Today</option>
+                            <option value="week" {% if current_date == 'week' %}selected{% endif %}>This Week</option>
+                            <option value="month" {% if current_date == 'month' %}selected{% endif %}>This Month</option>
+                            <option value="custom" {% if current_date == 'custom' %}selected{% endif %}>Custom Range</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Custom Date Range (shown when 'custom' is selected) -->
+                    <div class="col-md-3" id="customDateRange">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                    </div>
+                    <div class="col-md-3" id="customDateRangeEnd">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                    </div>
+                    
+                    <!-- Transaction Type Filter -->
+                    <div class="col-md-3">
+                        <label class="form-label">Transaction Type</label>
+                        <select name="type" class="form-select">
+                            <option value="">All Types</option>
+                            {% for value, label in transaction_types %}
+                                <option value="{{ value }}" {% if current_type == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Payment Mode Filter -->
+                    <div class="col-md-3">
+                        <label class="form-label">Payment Mode</label>
+                        <select name="payment" class="form-select">
+                            <option value="">All Modes</option>
+                            {% for value, label in payment_modes %}
+                                <option value="{{ value }}" {% if current_payment == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Search -->
+                    <div class="col-md-6">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search by note or username..." 
+                               value="{{ current_search }}">
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="col-md-6 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-2"></i>Apply Filters
+                        </button>
+                        <a href="{% url 'transactions:list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-2"></i>Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Transactions Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% if transactions %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Fee</th>
+                            <th>Payment Mode</th>
+                            <th>Note</th>
+                            <th>Created By</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td><strong>#{{ transaction.id }}</strong></td>
+                            <td>
+                                <div>{{ transaction.created_at|date:"M d, Y" }}</div>
+                                <small class="text-muted">{{ transaction.created_at|time:"h:i A" }}</small>
+                            </td>
+                            <td>
+                                {% if transaction.is_cash_in %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-arrow-down me-1"></i>Cash In
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-arrow-up me-1"></i>Cash Out
+                                    </span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">{{ transaction.get_transaction_type_display }}</small>
+                            </td>
+                            <td>
+                                <strong class="{% if transaction.is_cash_in %}text-success{% else %}text-danger{% endif %}">
+                                    {% if transaction.is_cash_in %}+{% else %}-{% endif %}
+                                    PKR {{ transaction.amount|floatformat:2 }}
+                                </strong>
+                                <br>
+                                <small class="text-muted">Fee: {{ transaction.fee|floatformat:2 }}</small>
+                            </td>
+                            <td>
+                                {% if transaction.fee > 0 %}
+                                    <span class="text-primary fw-semibold">PKR {{ transaction.fee|floatformat:2 }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ transaction.get_payment_mode_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if transaction.note %}
+                                    <small>{{ transaction.note|truncatewords:5 }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ transaction.created_by.username }}</small></td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'transactions:detail' transaction.pk %}" 
+                                       class="btn btn-outline-primary" 
+                                       title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'transactions:update' transaction.pk %}" 
+                                       class="btn btn-outline-secondary" 
+                                       title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="card-footer bg-white">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if query_string %}&{{ query_string }}{% endif %}">First</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Next</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}">Last</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                <h5 class="mt-3 text-muted">No transactions found</h5>
+                <p class="text-muted">Start by creating your first transaction</p>
+                <a href="{% url 'transactions:create' %}" class="btn btn-success mt-2">
+                    <i class="bi bi-plus-circle me-2"></i>Create Transaction
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle custom date range fields
+    function toggleCustomDate() {
+        const dateFilter = document.querySelector('select[name="date"]').value;
+        const customStart = document.getElementById('customDateRange');
+        const customEnd = document.getElementById('customDateRangeEnd');
+        
+        if (dateFilter === 'custom') {
+            customStart.style.display = 'block';
+            customEnd.style.display = 'block';
+        } else {
+            customStart.style.display = 'none';
+            customEnd.style.display = 'none';
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleCustomDate();
+    });
+</script>
+{% endblock %}

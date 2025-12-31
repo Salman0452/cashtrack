@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Transaction Details{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold">Transaction Details</h2>
+                    <p class="text-muted mb-0">Transaction #{{ transaction.id }}</p>
+                </div>
+                <a href="{% url 'transactions:update' transaction.pk %}" class="btn btn-primary">
+                    <i class="bi bi-pencil me-2"></i>Edit
+                </a>
+            </div>
+            
+            <!-- Transaction Type Badge -->
+            <div class="card mb-3">
+                <div class="card-body text-center py-4">
+                    {% if transaction.is_cash_in %}
+                        <div class="mb-3">
+                            <i class="bi bi-arrow-down-circle text-success" style="font-size: 4rem;"></i>
+                        </div>
+                        <h3 class="fw-bold text-success mb-2">{{ transaction.get_transaction_type_display }}</h3>
+                        <h2 class="fw-bold text-success">PKR {{ transaction.amount|floatformat:2 }}</h2>
+                    {% else %}
+                        <div class="mb-3">
+                            <i class="bi bi-arrow-up-circle text-danger" style="font-size: 4rem;"></i>
+                        </div>
+                        <h3 class="fw-bold text-danger mb-2">{{ transaction.get_transaction_type_display }}</h3>
+                        <h2 class="fw-bold text-danger">PKR {{ transaction.amount|floatformat:2 }}</h2>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Transaction Details -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 fw-bold">Transaction Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Transaction Type</small>
+                                {% if transaction.is_cash_in %}
+                                    <span class="badge bg-success">Cash In</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Cash Out</span>
+                                {% endif %}
+                                <br>
+                                <strong class="mt-1 d-block">{{ transaction.get_transaction_type_display }}</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Payment Mode</small>
+                                <strong>{{ transaction.get_payment_mode_display }}</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Amount</small>
+                                <strong class="{% if transaction.is_cash_in %}text-success{% else %}text-danger{% endif %}">
+                                    PKR {{ transaction.amount|floatformat:2 }}
+                                </strong>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Fee/Profit</small>
+                                <strong class="text-primary">PKR {{ transaction.fee|floatformat:2 }}</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Cash In</small>
+                                <strong class="text-success">PKR {{ transaction.cash_in|floatformat:2 }}</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Cash Out</small>
+                                <strong class="text-danger">PKR {{ transaction.cash_out|floatformat:2 }}</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Note</small>
+                                <p class="mb-0">
+                                    {% if transaction.note %}
+                                        {{ transaction.note }}
+                                    {% else %}
+                                        <em class="text-muted">No notes provided</em>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Audit Information -->
+            <div class="card mt-3">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <small class="text-muted">Created By:</small><br>
+                            <strong>{{ transaction.created_by.username }}</strong>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <small class="text-muted">Created At:</small><br>
+                            <strong>{{ transaction.created_at|date:"F d, Y h:i A" }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Last Updated:</small><br>
+                            <strong>{{ transaction.updated_at|date:"F d, Y h:i A" }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="d-flex gap-2 mt-4">
+                <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+                </a>
+                <a href="{% url 'transactions:list' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-list-ul me-2"></i>View All Transactions
+                </a>
+            </div>
+            
+            <!-- Data Safety Notice -->
+            <div class="alert alert-info mt-3" role="alert">
+                <i class="bi bi-shield-check me-2"></i>
+                <strong>Data Safety:</strong> Transactions cannot be deleted to maintain audit trail. 
+                You can edit this transaction if needed.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

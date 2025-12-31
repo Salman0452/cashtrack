@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Bill Details{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-4">
+                <h2 class="fw-bold">
+                    <i class="bi bi-receipt me-2"></i>Bill Details
+                </h2>
+                <p class="text-muted">Complete information about this bill</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Bill #{{ bill.id }}</h5>
+                    {% if bill.status == 'PAID' %}
+                    <span class="badge bg-success">Paid</span>
+                    {% elif bill.is_overdue %}
+                    <span class="badge bg-danger">Overdue</span>
+                    {% else %}
+                    <span class="badge bg-warning">Pending</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Customer ID</p>
+                            <p class="fw-bold">{{ bill.customer_id }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Customer Name</p>
+                            <p class="fw-bold">{{ bill.customer_name|default:"-" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-muted mb-1">Bill Amount</p>
+                            <p class="fw-bold text-primary">PKR {{ bill.amount|floatformat:2 }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="text-muted mb-1">Service Fee</p>
+                            <p class="fw-bold text-success">PKR {{ bill.fee|floatformat:2 }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="text-muted mb-1">Total Amount</p>
+                            <p class="fw-bold text-dark fs-5">PKR {{ bill.total_amount|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Due Date</p>
+                            <p class="fw-bold">{{ bill.due_date|date:"F d, Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Created On</p>
+                            <p class="fw-bold">{{ bill.created_at|date:"F d, Y - h:i A" }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if bill.note %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <p class="text-muted mb-1">Notes</p>
+                            <p>{{ bill.note }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bill.transaction %}
+                    <div class="alert alert-success">
+                        <h6 class="fw-bold mb-2">
+                            <i class="bi bi-check-circle me-2"></i>Payment Transaction
+                        </h6>
+                        <p class="mb-1">Paid on: {{ bill.paid_at|date:"F d, Y - h:i A" }}</p>
+                        <a href="{% url 'transactions:detail' bill.transaction.pk %}" class="btn btn-sm btn-outline-success">
+                            View Transaction
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex gap-2 justify-content-between">
+                        <a href="{% url 'bills:list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Bills
+                        </a>
+                        <div>
+                            {% if bill.status != 'PAID' %}
+                            <a href="{% url 'bills:update' bill.pk %}" class="btn btn-primary me-2">
+                                <i class="bi bi-pencil me-2"></i>Edit Bill
+                            </a>
+                            <form method="post" action="{% url 'bills:mark_paid' bill.pk %}" style="display: inline;" onsubmit="return confirm('Mark this bill as PAID and create a transaction?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle me-2"></i>Mark as Paid
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
