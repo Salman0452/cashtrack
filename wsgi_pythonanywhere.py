@@ -12,7 +12,7 @@ import sys
 
 # Add your project directory to the sys.path
 # REPLACE 'yourusername' with your PythonAnywhere username
-path = '/home/yourusername/django/website'
+path = '/home/yourusername/saeedaccounts'
 if path not in sys.path:
     sys.path.insert(0, path)
 

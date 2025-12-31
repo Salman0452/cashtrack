@@ -42,8 +42,10 @@ Shop management system for tracking cash transactions, mobile wallet services, b
    SECRET_KEY=your-very-secure-random-secret-key-here
    DEBUG=False
    ALLOWED_HOSTS=yourusername.pythonanywhere.com
-   STATIC_ROOT=/home/yourusername/django/website/staticfiles
+   STATIC_ROOT=/home/yourusername/saeedaccounts/staticfiles
    ```
+   
+   **IMPORTANT**: Replace `yourusername` with your actual PythonAnywhere username!
 
 5. **Generate Secret Key**:
    ```bash
@@ -69,7 +71,7 @@ Shop management system for tracking cash transactions, mobile wallet services, b
    import os
    import sys
    
-   path = '/home/yourusername/django/website'
+   path = '/home/yourusername/saeedaccounts'
    if path not in sys.path:
        sys.path.append(path)
    
@@ -78,13 +80,15 @@ Shop management system for tracking cash transactions, mobile wallet services, b
    from django.core.wsgi import get_wsgi_application
    application = get_wsgi_application()
    ```
+   
+   **IMPORTANT**: Replace `yourusername` with your actual PythonAnywhere username!
 
 6. **Set Virtual Environment**:
-   - Virtualenv path: `/home/yourusername/django/website/venv`
+   - Virtualenv path: `/home/yourusername/saeedaccounts/venv`
 
 7. **Configure Static Files**:
    - URL: `/static/`
-   - Directory: `/home/yourusername/django/website/staticfiles`
+   - Directory: `/home/yourusername/saeedaccounts/staticfiles`
 
 8. **Reload** your web app
 
