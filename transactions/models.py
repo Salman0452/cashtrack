@@ -25,11 +25,19 @@ class Transaction(models.Model):
     # Transaction type choices - representing common shop operations
     MOBILE_WALLET_SEND = 'MOBILE_WALLET_SEND'
     MOBILE_WALLET_RECEIVE = 'MOBILE_WALLET_RECEIVE'
-    CASH_CREDIT = 'CASH_CREDIT'
     STATIONARY_SALE = 'STATIONARY_SALE'
+    PRINT_COPY = 'PRINT_COPY'
+    DEPOSIT = 'DEPOSIT'
+    CREDIT = 'CREDIT'
+    LOAD_PACKAGE = 'LOAD_PACKAGE'
     OTHER = 'OTHER'
     
     # Keep these for backward compatibility (existing records)
+    JAZZCASH_SEND = 'JAZZCASH_SEND'
+    JAZZCASH_RECEIVE = 'JAZZCASH_RECEIVE'
+    EASYPAISA_SEND = 'EASYPAISA_SEND'
+    EASYPAISA_RECEIVE = 'EASYPAISA_RECEIVE'
+    CASH_CREDIT = 'CASH_CREDIT'
     BILL_PAYMENT = 'BILL_PAYMENT'
     BANK_DEPOSIT = 'BANK_DEPOSIT'
     BANK_WITHDRAWAL = 'BANK_WITHDRAWAL'
@@ -37,13 +45,30 @@ class Transaction(models.Model):
     TRANSACTION_TYPE_CHOICES = [
         (MOBILE_WALLET_SEND, 'JazzCash/EasyPaisa Send'),
         (MOBILE_WALLET_RECEIVE, 'JazzCash/EasyPaisa Receive'),
-        (CASH_CREDIT, 'Cash Credit (Load Balance)'),
         (STATIONARY_SALE, 'Stationary Sale'),
+        (PRINT_COPY, 'Print/Copy'),
+        (DEPOSIT, 'Deposit'),
+        (CREDIT, 'Credit'),
+        (LOAD_PACKAGE, 'Load/Package'),
         (OTHER, 'Other'),
         # Hidden from forms but valid for programmatic creation (bills system)
+        (JAZZCASH_SEND, 'JazzCash Send (Old)'),
+        (JAZZCASH_RECEIVE, 'JazzCash Receive (Old)'),
+        (EASYPAISA_SEND, 'EasyPaisa Send (Old)'),
+        (EASYPAISA_RECEIVE, 'EasyPaisa Receive (Old)'),
+        (CASH_CREDIT, 'Cash Credit (Old)'),
         (BILL_PAYMENT, 'Bill Payment'),
         (BANK_DEPOSIT, 'Bank Deposit'),
         (BANK_WITHDRAWAL, 'Bank Withdrawal'),
+    ]
+    
+    # Print type choices for Print/Copy transactions
+    BLACK_WHITE = 'BLACK_WHITE'
+    COLOR = 'COLOR'
+    
+    PRINT_TYPE_CHOICES = [
+        (BLACK_WHITE, 'Black & White'),
+        (COLOR, 'Color'),
     ]
     
     # Payment mode choices
@@ -102,6 +127,22 @@ class Transaction(models.Model):
         decimal_places=2,
         default=Decimal('0.00'),
         help_text="Money paid out (auto-calculated)"
+    )
+    
+    # Print/Copy specific field
+    print_type = models.CharField(
+        max_length=20,
+        choices=PRINT_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        default=BLACK_WHITE,
+        help_text="Print type for Print/Copy transactions"
+    )
+    
+    quantity = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Number of pages/copies for Print/Copy transactions"
     )
     
     # Additional information
@@ -228,52 +269,63 @@ class Transaction(models.Model):
         if self.fee is None:
             self.fee = Decimal('0.00')
         
-        if self.transaction_type == self.MOBILE_WALLET_SEND:
-            # Mobile wallet send: customer gives us cash (amount + fee)
-            # The app transfer is separate - we only track our shop cash
-            self.cash_in = self.amount + self.fee  # Total cash received
+        # Mobile Wallet Send (JazzCash/EasyPaisa): Customer gives cash (amount + fee), we send via app
+        if self.transaction_type in [self.MOBILE_WALLET_SEND, self.JAZZCASH_SEND, self.EASYPAISA_SEND]:
+            self.cash_in = self.amount + self.fee
             self.cash_out = Decimal('0.00')
             
-        elif self.transaction_type == self.MOBILE_WALLET_RECEIVE:
-            # Mobile wallet receive/credit: customer withdraws cash from wallet
-            # Example: Customer says "credit 5000", fee is 100
-            # - cash_out = 5000 (money goes out to customer)
-            # - cash_in = 100 (your profit stays)
+        # Mobile Wallet Receive (JazzCash/EasyPaisa): Customer withdraws cash from wallet
+        elif self.transaction_type in [self.MOBILE_WALLET_RECEIVE, self.JAZZCASH_RECEIVE, self.EASYPAISA_RECEIVE]:
             self.cash_out = self.amount
             self.cash_in = self.fee
             
-        elif self.transaction_type == self.CASH_CREDIT:
-            # Cash credit: customer takes cash to load balance in shop's SIM
-            # Example: Customer takes 1000 to deposit in your Zong/Jazz SIM
-            # - cash_out = amount (money goes out)
-            # - cash_in = 0 (no immediate profit, balance credited to SIM)
-            self.cash_out = self.amount
-            self.cash_in = Decimal('0.00')
-            
-        elif self.transaction_type == self.BILL_PAYMENT:
-            # Bill payment: customer gives us cash (amount + fee)
-            # The bill payment via app is separate - we only track our shop cash
-            self.cash_in = self.amount + self.fee  # Total cash received
-            self.cash_out = Decimal('0.00')
-            
+        # Stationary Sale: Customer pays for items
         elif self.transaction_type == self.STATIONARY_SALE:
-            # Sale: customer pays us for items
             self.cash_in = self.amount
             self.cash_out = Decimal('0.00')
             
-        elif self.transaction_type == self.BANK_DEPOSIT:
-            # Deposit: cash goes from shop to bank
+        # Print/Copy: Customer pays for printing service
+        elif self.transaction_type == self.PRINT_COPY:
+            self.cash_in = self.amount
+            self.cash_out = Decimal('0.00')
+            
+        # Deposit: Add money to shop cash
+        elif self.transaction_type == self.DEPOSIT:
+            self.cash_in = self.amount
+            self.cash_out = Decimal('0.00')
+            
+        # Credit: Expense or money taken out
+        elif self.transaction_type == self.CREDIT:
             self.cash_out = self.amount
             self.cash_in = Decimal('0.00')
             
-        elif self.transaction_type == self.BANK_WITHDRAWAL:
-            # Withdrawal: cash comes from bank to shop
+        # Load/Package: Cash added (similar to deposit)
+        elif self.transaction_type == self.LOAD_PACKAGE:
             self.cash_in = self.amount
             self.cash_out = Decimal('0.00')
             
+        # Legacy: Cash Credit
+        elif self.transaction_type == self.CASH_CREDIT:
+            self.cash_out = self.amount
+            self.cash_in = Decimal('0.00')
+            
+        # Legacy: Bill Payment
+        elif self.transaction_type == self.BILL_PAYMENT:
+            self.cash_in = self.amount + self.fee
+            self.cash_out = Decimal('0.00')
+            
+        # Legacy: Bank Deposit
+        elif self.transaction_type == self.BANK_DEPOSIT:
+            self.cash_out = self.amount
+            self.cash_in = Decimal('0.00')
+            
+        # Legacy: Bank Withdrawal
+        elif self.transaction_type == self.BANK_WITHDRAWAL:
+            self.cash_in = self.amount
+            self.cash_out = Decimal('0.00')
+            
+        # Other: flexible handling
         else:
-            # OTHER: flexible handling
-            # If not explicitly set, default to cash_out
             if self.cash_in == Decimal('0.00') and self.cash_out == Decimal('0.00'):
                 self.cash_out = self.amount
         

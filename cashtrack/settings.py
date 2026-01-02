@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'transactions',
     'dashboard',
     'bills',
+    'shop_settings',
+    'analytics',
 ]
 
 MIDDLEWARE = [

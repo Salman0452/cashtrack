@@ -97,6 +97,39 @@
                             {% endif %}
                         </div>
                         
+                        <!-- Print Type (only shown for Print/Copy) -->
+                        <div class="mb-4" id="print_type_field" style="display: none;">
+                            <label for="{{ form.print_type.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.print_type.label }}
+                            </label>
+                            {{ form.print_type }}
+                            {% if form.print_type.errors %}
+                                <div class="text-danger small mt-1">{{ form.print_type.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Select black & white or color printing
+                            </small>
+                        </div>
+                        
+                        <!-- Quantity (only shown for Print/Copy) -->
+                        <div class="mb-4" id="quantity_field" style="display: none;">
+                            <label for="{{ form.quantity.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.quantity.label }}
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-hash"></i></span>
+                                {{ form.quantity }}
+                            </div>
+                            {% if form.quantity.errors %}
+                                <div class="text-danger small mt-1">{{ form.quantity.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>
+                                How many pages or copies? <span id="cost_display">(Cost will be calculated based on print type)</span>
+                            </small>
+                        </div>
+                        
                         <!-- Note -->
                         <div class="mb-4">
                             <label for="{{ form.note.id_for_label }}" class="form-label fw-semibold">
@@ -132,17 +165,18 @@
                         <div class="col-md-6">
                             <p class="mb-1"><strong class="text-success">Cash IN (Money Received):</strong></p>
                             <ul class="mb-3 small">
+                                <li><strong>JazzCash/EasyPaisa Send:</strong> Customer pays to send money</li>
                                 <li><strong>Stationary Sale:</strong> Customer buys items</li>
-                                <li><strong>Bank Withdrawal:</strong> Cash from bank</li>
+                                <li><strong>Print/Copy:</strong> Printing service</li>
+                                <li><strong>Deposit:</strong> Add money to shop</li>
+                                <li><strong>Load/Package:</strong> Add cash</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
                             <p class="mb-1"><strong class="text-danger">Cash OUT (Money Paid):</strong></p>
                             <ul class="mb-0 small">
-                                <li><strong>JazzCash Send:</strong> Send money via JazzCash</li>
-                                <li><strong>EasyPaisa Send:</strong> Send money via EasyPaisa</li>
-                                <li><strong>Bill Payment:</strong> Pay customer's bill</li>
-                                <li><strong>Bank Deposit:</strong> Deposit cash to bank</li>
+                                <li><strong>JazzCash/EasyPaisa Receive:</strong> Customer withdraws cash</li>
+                                <li><strong>Credit:</strong> Expenses or money taken out</li>
                             </ul>
                         </div>
                     </div>
@@ -151,4 +185,89 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Show/hide print_type and quantity fields based on transaction type
+    document.addEventListener('DOMContentLoaded', function() {
+        const transactionTypeSelect = document.getElementById('id_transaction_type');
+        const printTypeField = document.getElementById('print_type_field');
+        const quantityField = document.getElementById('quantity_field');
+        const amountInput = document.getElementById('id_amount');
+        const feeInput = document.getElementById('id_fee');
+        const quantityInput = document.getElementById('id_quantity');
+        const printTypeSelect = document.getElementById('id_print_type');
+        const costDisplay = document.getElementById('cost_display');
+        
+        // Store print costs
+        let printCosts = {
+            bw: 5.00,
+            color: 5.00
+        };
+        
+        // Fetch print costs from settings
+        fetch('/settings/api/')
+            .then(response => response.json())
+            .then(data => {
+                printCosts.bw = data.print_bw_cost;
+                printCosts.color = data.print_color_cost;
+                updateCostDisplay();
+            })
+            .catch(error => console.error('Error fetching settings:', error));
+        
+        function togglePrintFields() {
+            const selectedValue = transactionTypeSelect.value;
+            if (selectedValue === 'PRINT_COPY') {
+                printTypeField.style.display = 'block';
+                quantityField.style.display = 'block';
+            } else {
+                printTypeField.style.display = 'none';
+                quantityField.style.display = 'none';
+            }
+        }
+        
+        function updateCostDisplay() {
+            const printType = printTypeSelect.value;
+            if (printType === 'BLACK_WHITE') {
+                costDisplay.textContent = `(Cost: Rs. ${printCosts.bw} per page for B&W)`;
+            } else if (printType === 'COLOR') {
+                costDisplay.textContent = `(Cost: Rs. ${printCosts.color} per page for Color)`;
+            } else {
+                costDisplay.textContent = '(Cost will be calculated based on print type)';
+            }
+        }
+        
+        // Auto-calculate profit for Print/Copy
+        function calculatePrintProfit() {
+            if (transactionTypeSelect.value === 'PRINT_COPY') {
+                const amount = parseFloat(amountInput.value) || 0;
+                const quantity = parseInt(quantityInput.value) || 0;
+                const printType = printTypeSelect.value;
+                
+                let costPerPage = printCosts.bw; // Default to B&W
+                if (printType === 'COLOR') {
+                    costPerPage = printCosts.color;
+                }
+                
+                const totalCost = quantity * costPerPage;
+                const profit = amount - totalCost;
+                
+                if (amount > 0 && quantity > 0) {
+                    feeInput.value = profit.toFixed(2);
+                }
+                
+                updateCostDisplay();
+            }
+        }
+        
+        // Initial check
+        togglePrintFields();
+        updateCostDisplay();
+        
+        // Listen for changes
+        transactionTypeSelect.addEventListener('change', togglePrintFields);
+        amountInput.addEventListener('input', calculatePrintProfit);
+        quantityInput.addEventListener('input', calculatePrintProfit);
+        printTypeSelect.addEventListener('change', calculatePrintProfit);
+    });
+</script>
 {% endblock %}

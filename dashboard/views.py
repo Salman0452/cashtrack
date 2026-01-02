@@ -93,6 +93,23 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['today_profit'] = today_stats['fees'] or 0
         
         # =====================================================
+        # THIS MONTH'S PROFIT
+        # =====================================================
+        # Calculate profit for current month
+        month_start = timezone.make_aware(
+            datetime.combine(now.date().replace(day=1), time.min)
+        )
+        month_end = today_end
+        
+        month_stats = Transaction.objects.filter(
+            created_at__range=(month_start, month_end)
+        ).aggregate(
+            fees=Sum('fee'),
+        )
+        
+        context['month_profit'] = month_stats['fees'] or 0
+        
+        # =====================================================
         # BREAKDOWN BY TRANSACTION TYPE (Today)
         # =====================================================
         # Shows which transaction types were most active today

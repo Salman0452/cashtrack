@@ -55,6 +55,8 @@ class BillListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        from datetime import timedelta
+        from collections import defaultdict
         
         # Get all bills for statistics
         all_bills = Bill.objects.all()
@@ -69,17 +71,36 @@ class BillListView(LoginRequiredMixin, ListView):
         ).count()
         
         # Today's date for highlighting
-        context['today'] = timezone.now().date()
+        today = timezone.now().date()
+        context['today'] = today
         
-        # Group bills by due date (only pending bills)
-        bills_by_date = Bill.objects.filter(
-            status=Bill.PENDING
-        ).values('due_date').annotate(
-            count=Count('id'),
-            total_amount=Sum('amount')
-        ).order_by('due_date')[:10]  # Next 10 due dates
+        # Get all pending bills grouped by due date
+        pending_bills = Bill.objects.filter(status=Bill.PENDING).order_by('due_date')
         
-        context['bills_by_date'] = bills_by_date
+        # Separate bills into categories
+        overdue_bills = []
+        today_bills = []
+        tomorrow_bills = []
+        upcoming_bills = defaultdict(list)
+        
+        for bill in pending_bills:
+            if bill.due_date < today:
+                overdue_bills.append(bill)
+            elif bill.due_date == today:
+                today_bills.append(bill)
+            elif bill.due_date == today + timedelta(days=1):
+                tomorrow_bills.append(bill)
+            else:
+                # Group other bills by due date
+                upcoming_bills[bill.due_date].append(bill)
+        
+        # Convert upcoming_bills to sorted list of tuples
+        upcoming_bills_sorted = sorted(upcoming_bills.items())
+        
+        context['overdue_bills_list'] = overdue_bills
+        context['today_bills_list'] = today_bills
+        context['tomorrow_bills_list'] = tomorrow_bills
+        context['upcoming_bills_by_date'] = upcoming_bills_sorted
         
         # Query string for pagination
         query_params = self.request.GET.copy()
@@ -102,8 +123,7 @@ class BillCreateView(LoginRequiredMixin, CreateView):
         form.instance.created_by = self.request.user
         bill = form.save()
         
-        # Automatically create transaction for the bill
-        # Customer pays upfront (amount + fee)
+        # Create transaction for bill payment (customer has paid - record cash/profit)
         txn = Transaction.objects.create(
             transaction_type=Transaction.BILL_PAYMENT,
             payment_mode=Transaction.CASH,
@@ -113,10 +133,11 @@ class BillCreateView(LoginRequiredMixin, CreateView):
             created_by=self.request.user
         )
         
-        # Mark bill as paid immediately
-        bill.mark_as_paid(txn)
+        # Link transaction but keep bill as PENDING (don't call mark_as_paid)
+        bill.transaction = txn
+        bill.save()
         
-        messages.success(self.request, f'Bill created and marked as paid! Transaction #{txn.id} created.')
+        messages.success(self.request, f'Bill created! Transaction #{txn.id} created. Cash and profit recorded.')
         return redirect(self.success_url)
 
 

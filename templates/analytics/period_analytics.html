@@ -1,0 +1,131 @@
+<!-- Period Analytics Breakdown -->
+{% load static %}
+{% load analytics_filters %}
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="text-white-50 mb-2">Total Cash</h6>
+                <h3 class="mb-0 fw-bold">PKR {{ period_totals|get_item:period|get_item:'cash'|floatformat:2 }}</h3>
+                <small>{{ period_totals|get_item:period|get_item:'count' }} transactions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="text-white-50 mb-2">Total Profit</h6>
+                <h3 class="mb-0 fw-bold">PKR {{ period_totals|get_item:period|get_item:'profit'|floatformat:2 }}</h3>
+                <small>From all transaction types</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="text-white-50 mb-2">Average Profit</h6>
+                <h3 class="mb-0 fw-bold">
+                    {% widthratio period_totals|get_item:period|get_item:'profit' period_totals|get_item:period|get_item:'count'|add:1 1 as avg %}
+                    PKR {{ avg|floatformat:2 }}
+                </h3>
+                <small>Per transaction</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart me-2"></i>Cash Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px; position: relative;">
+                    <canvas id="{{ period }}-cash-chart" 
+                            data-cash='[{% for type_key, type_label in type_labels.items %}{{ analytics|get_item:period|get_item:type_key|get_item:'cash' }}{% if not forloop.last %},{% endif %}{% endfor %}]'
+                            data-profit='[{% for type_key, type_label in type_labels.items %}{{ analytics|get_item:period|get_item:type_key|get_item:'profit' }}{% if not forloop.last %},{% endif %}{% endfor %}]'
+                            data-labels='[{% for type_key, type_label in type_labels.items %}"{{ type_label }}"{% if not forloop.last %},{% endif %}{% endfor %}]'>
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart me-2"></i>Profit Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px; position: relative;">
+                    <canvas id="{{ period }}-profit-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Breakdown Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-table me-2"></i>Detailed Breakdown - {{ period_name }}</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Transaction Type</th>
+                            <th class="text-center">Count</th>
+                            <th class="text-end">Total Cash</th>
+                            <th class="text-end">Total Profit</th>
+                            <th class="text-end">Avg Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for type_key, type_label in type_labels.items %}
+                        {% with data=analytics|get_item:period|get_item:type_key %}
+                        <tr>
+                            <td>
+                                <strong>{{ type_label }}</strong>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">{{ data.count }}</span>
+                            </td>
+                            <td class="text-end">
+                                <strong class="text-primary">PKR {{ data.cash|floatformat:2 }}</strong>
+                            </td>
+                            <td class="text-end">
+                                <strong class="text-success">PKR {{ data.profit|floatformat:2 }}</strong>
+                            </td>
+                            <td class="text-end">
+                                {% if data.count > 0 %}
+                                    {% widthratio data.profit data.count 1 as avg_profit %}
+                                    <span class="text-muted">PKR {{ avg_profit|floatformat:2 }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                        <tr class="table-active fw-bold">
+                            <td>TOTAL</td>
+                            <td class="text-center">{{ period_totals|get_item:period|get_item:'count' }}</td>
+                            <td class="text-end text-primary">PKR {{ period_totals|get_item:period|get_item:'cash'|floatformat:2 }}</td>
+                            <td class="text-end text-success">PKR {{ period_totals|get_item:period|get_item:'profit'|floatformat:2 }}</td>
+                            <td class="text-end">
+                                {% widthratio period_totals|get_item:period|get_item:'profit' period_totals|get_item:period|get_item:'count'|add:1 1 as total_avg %}
+                                PKR {{ total_avg|floatformat:2 }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

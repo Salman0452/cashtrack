@@ -114,8 +114,19 @@ class TransactionListView(LoginRequiredMixin, ListView):
         context['start_date'] = self.request.GET.get('start_date', '')
         context['end_date'] = self.request.GET.get('end_date', '')
         
-        # Filter options from model choices
-        context['transaction_types'] = Transaction.TRANSACTION_TYPE_CHOICES
+        # Filter options - only show active transaction types (not legacy)
+        active_transaction_types = [
+            (Transaction.MOBILE_WALLET_SEND, 'Mobile Wallet Send (JazzCash/EasyPaisa)'),
+            (Transaction.MOBILE_WALLET_RECEIVE, 'Mobile Wallet Receive (JazzCash/EasyPaisa)'),
+            (Transaction.STATIONARY_SALE, 'Stationary Sale'),
+            (Transaction.PRINT_COPY, 'Print/Copy'),
+            (Transaction.DEPOSIT, 'Deposit'),
+            (Transaction.CREDIT, 'Credit'),
+            (Transaction.LOAD_PACKAGE, 'Load/Package'),
+            (Transaction.BILL_PAYMENT, 'Bill Payment'),
+            (Transaction.OTHER, 'Other'),
+        ]
+        context['transaction_types'] = active_transaction_types
         context['payment_modes'] = Transaction.PAYMENT_MODE_CHOICES
         
         # Build query string for pagination (preserve filters)

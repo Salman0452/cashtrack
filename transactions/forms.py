@@ -29,12 +29,15 @@ class TransactionForm(forms.ModelForm):
             'amount',
             'fee',
             'payment_mode',
+            'print_type',
+            'quantity',
             'note',
         ]
         widgets = {
             'transaction_type': forms.Select(attrs={
                 'class': 'form-select',
                 'required': True,
+                'id': 'id_transaction_type',
             }),
             'amount': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -53,6 +56,16 @@ class TransactionForm(forms.ModelForm):
                 'class': 'form-select',
                 'required': True,
             }),
+            'print_type': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_print_type',
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Number of pages/copies',
+                'min': '1',
+                'id': 'id_quantity',
+            }),
             'note': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
@@ -64,11 +77,15 @@ class TransactionForm(forms.ModelForm):
             'amount': 'Amount (PKR)',
             'fee': 'Fee/Profit (PKR)',
             'payment_mode': 'Payment Method',
+            'print_type': 'Print Type',
+            'quantity': 'Quantity',
             'note': 'Notes',
         }
         help_texts = {
             'amount': 'Enter the transaction amount',
             'fee': 'Service fee or commission you earn',
+            'print_type': 'Select color or black & white',
+            'quantity': 'Number of pages or copies',
             'note': 'Optional details for future reference',
         }
     
@@ -76,15 +93,28 @@ class TransactionForm(forms.ModelForm):
         """Initialize form and filter transaction type choices to exclude hidden types."""
         super().__init__(*args, **kwargs)
         
-        # Only show user-facing transaction types (exclude BILL_PAYMENT, BANK_DEPOSIT, BANK_WITHDRAWAL)
+        # Only show user-facing transaction types
         user_facing_choices = [
             (Transaction.MOBILE_WALLET_SEND, 'JazzCash/EasyPaisa Send'),
             (Transaction.MOBILE_WALLET_RECEIVE, 'JazzCash/EasyPaisa Receive'),
-            (Transaction.CASH_CREDIT, 'Cash Credit (Load Balance)'),
             (Transaction.STATIONARY_SALE, 'Stationary Sale'),
+            (Transaction.PRINT_COPY, 'Print/Copy'),
+            (Transaction.DEPOSIT, 'Deposit'),
+            (Transaction.CREDIT, 'Credit'),
+            (Transaction.LOAD_PACKAGE, 'Load/Package'),
             (Transaction.OTHER, 'Other'),
         ]
         self.fields['transaction_type'].choices = user_facing_choices
+        
+        # Make print_type and quantity not required by default
+        self.fields['print_type'].required = False
+        self.fields['quantity'].required = False
+        
+        # Remove empty choice from print_type dropdown
+        if '' in dict(self.fields['print_type'].choices):
+            self.fields['print_type'].choices = [
+                choice for choice in self.fields['print_type'].choices if choice[0] != ''
+            ]
     
     def clean_amount(self):
         """

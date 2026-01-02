@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load bill_filters %}
 
 {% block title %}Bills Management{% endblock %}
 
@@ -86,50 +87,194 @@
     </div>
 
     <!-- Bills by Due Date -->
-    {% if bills_by_date %}
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="bi bi-calendar-event me-2"></i>Upcoming Bills by Due Date
-                    </h5>
+        <!-- Overdue Bills -->
+        {% if overdue_bills_list %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Overdue Bills
+                        <span class="badge bg-white text-danger float-end">{{ overdue_bills_list|length }}</span>
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Due Date</th>
-                                    <th>Number of Bills</th>
-                                    <th>Total Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for date_group in bills_by_date %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ date_group.due_date|date:"M d, Y" }}</strong>
-                                        {% if date_group.due_date == today %}
-                                        <span class="badge bg-warning ms-2">Today</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-primary">{{ date_group.count }} bills</span>
-                                    </td>
-                                    <td>
-                                        <strong class="text-success">PKR {{ date_group.total_amount|floatformat:2 }}</strong>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <div class="card-body p-2" style="max-height: 400px; overflow-y: auto;">
+                    {% for bill in overdue_bills_list %}
+                    <div class="card mb-2 border-start border-danger border-3">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <a href="{% url 'bills:detail' bill.pk %}" class="text-decoration-none">
+                                        <strong class="text-danger">{{ bill.customer_id }}</strong>
+                                    </a>
+                                    {% if bill.customer_name %}
+                                    <br><small class="text-muted">{{ bill.customer_name }}</small>
+                                    {% endif %}
+                                </div>
+                                <form method="post" action="{% url 'bills:mark_paid' bill.pk %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold text-success">PKR {{ bill.total_amount|floatformat:2 }}</span>
+                                <small class="text-danger">Due: {{ bill.due_date|date:"M d" }}</small>
+                            </div>
+                            {% if bill.note %}
+                            <small class="text-muted d-block mt-1">{{ bill.note|truncatewords:10 }}</small>
+                            {% endif %}
+                        </div>
                     </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">Total: PKR {{ overdue_bills_list|sum_total_amounts|floatformat:2 }}</small>
                 </div>
             </div>
         </div>
+        {% endif %}
+
+        <!-- Today's Bills -->
+        {% if today_bills_list %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-calendar-check me-2"></i>Due Today
+                        <span class="badge bg-white text-warning float-end">{{ today_bills_list|length }}</span>
+                    </h6>
+                </div>
+                <div class="card-body p-2" style="max-height: 400px; overflow-y: auto;">
+                    {% for bill in today_bills_list %}
+                    <div class="card mb-2 border-start border-warning border-3">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <a href="{% url 'bills:detail' bill.pk %}" class="text-decoration-none">
+                                        <strong class="text-warning">{{ bill.customer_id }}</strong>
+                                    </a>
+                                    {% if bill.customer_name %}
+                                    <br><small class="text-muted">{{ bill.customer_name }}</small>
+                                    {% endif %}
+                                </div>
+                                <form method="post" action="{% url 'bills:mark_paid' bill.pk %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold text-success">PKR {{ bill.total_amount|floatformat:2 }}</span>
+                                <small class="text-warning fw-bold">Today</small>
+                            </div>
+                            {% if bill.note %}
+                            <small class="text-muted d-block mt-1">{{ bill.note|truncatewords:10 }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">Total: PKR {{ today_bills_list|sum_total_amounts|floatformat:2 }}</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tomorrow's Bills -->
+        {% if tomorrow_bills_list %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-calendar-day me-2"></i>Due Tomorrow
+                        <span class="badge bg-white text-info float-end">{{ tomorrow_bills_list|length }}</span>
+                    </h6>
+                </div>
+                <div class="card-body p-2" style="max-height: 400px; overflow-y: auto;">
+                    {% for bill in tomorrow_bills_list %}
+                    <div class="card mb-2 border-start border-info border-3">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <a href="{% url 'bills:detail' bill.pk %}" class="text-decoration-none">
+                                        <strong class="text-info">{{ bill.customer_id }}</strong>
+                                    </a>
+                                    {% if bill.customer_name %}
+                                    <br><small class="text-muted">{{ bill.customer_name }}</small>
+                                    {% endif %}
+                                </div>
+                                <form method="post" action="{% url 'bills:mark_paid' bill.pk %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold text-success">PKR {{ bill.total_amount|floatformat:2 }}</span>
+                                <small class="text-info">Tomorrow</small>
+                            </div>
+                            {% if bill.note %}
+                            <small class="text-muted d-block mt-1">{{ bill.note|truncatewords:10 }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">Total: PKR {{ tomorrow_bills_list|sum_total_amounts|floatformat:2 }}</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Upcoming Bills by Date -->
+        {% for due_date, bills in upcoming_bills_by_date %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0 fw-bold">
+                    {% for bill in bills %}
+                    <div class="card mb-2 border-start border-primary border-3">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <a href="{% url 'bills:detail' bill.pk %}" class="text-decoration-none">
+                                        <strong class="text-primary">{{ bill.customer_id }}</strong>
+                                    </a>
+                                    {% if bill.customer_name %}
+                                    <br><small class="text-muted">{{ bill.customer_name }}</small>
+                                    {% endif %}
+                                </div>
+                                <form method="post" action="{% url 'bills:mark_paid' bill.pk %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold text-success">PKR {{ bill.total_amount|floatformat:2 }}</span>
+                                <small class="text-muted">{{ due_date|date:"M d" }}</small>
+                            </div>
+                            {% if bill.note %}
+                            <small class="text-muted d-block mt-1">{{ bill.note|truncatewords:10 }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">Total: PKR {{ bills|sum_total_amounts|floatformat:2 }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
-    {% endif %}
 
     <!-- Filters -->
     <div class="row mb-4">

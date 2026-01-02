@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-graph-up me-2"></i>Analytics Dashboard
+            </h2>
+            <p class="text-muted mb-0">Detailed transaction analysis and breakdown</p>
+        </div>
+    </div>
+
+    <!-- Period Tabs -->
+    <ul class="nav nav-tabs mb-4" id="periodTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="today-tab" data-bs-toggle="tab" data-bs-target="#today" type="button">
+                <i class="bi bi-calendar-day me-1"></i>Today
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="yesterday-tab" data-bs-toggle="tab" data-bs-target="#yesterday" type="button">
+                <i class="bi bi-calendar-minus me-1"></i>Yesterday
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="monthly-tab" data-bs-toggle="tab" data-bs-target="#monthly" type="button">
+                <i class="bi bi-calendar-month me-1"></i>This Month
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="alltime-tab" data-bs-toggle="tab" data-bs-target="#alltime" type="button">
+                <i class="bi bi-infinity me-1"></i>All Time
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="periodTabContent">
+        <!-- Today Tab -->
+        <div class="tab-pane fade show active" id="today" role="tabpanel">
+            {% include 'analytics/period_analytics.html' with period='today' period_name='Today' %}
+        </div>
+
+        <!-- Yesterday Tab -->
+        <div class="tab-pane fade" id="yesterday" role="tabpanel">
+            {% include 'analytics/period_analytics.html' with period='yesterday' period_name='Yesterday' %}
+        </div>
+
+        <!-- Monthly Tab -->
+        <div class="tab-pane fade" id="monthly" role="tabpanel">
+            {% include 'analytics/period_analytics.html' with period='monthly' period_name='This Month' %}
+        </div>
+
+        <!-- All Time Tab -->
+        <div class="tab-pane fade" id="alltime" role="tabpanel">
+            {% include 'analytics/period_analytics.html' with period='all_time' period_name='All Time' %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart colors
+const chartColors = {
+    mobile_wallet_send: '#ff6384',
+    mobile_wallet_receive: '#36a2eb',
+    print_copy: '#ffce56',
+    stationary: '#4bc0c0',
+    deposit: '#9966ff',
+    credit: '#ff9f40',
+    load_package: '#c9cbcf',
+    bill_payment: '#7e57c2'
+};
+
+// Initialize charts when tab is shown
+document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(button => {
+    button.addEventListener('shown.bs.tab', function (event) {
+        const targetId = event.target.getAttribute('data-bs-target').substring(1);
+        initializeChartsForPeriod(targetId);
+    });
+});
+
+// Initialize charts for today on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeChartsForPeriod('today');
+});
+
+function initializeChartsForPeriod(period) {
+    const cashCanvas = document.getElementById(period + '-cash-chart');
+    const profitCanvas = document.getElementById(period + '-profit-chart');
+    
+    if (!cashCanvas || !profitCanvas) return;
+    
+    // Destroy existing charts if they exist
+    if (cashCanvas.chart) {
+        cashCanvas.chart.destroy();
+    }
+    if (profitCanvas.chart) {
+        profitCanvas.chart.destroy();
+    }
+    
+    // Get data from data attributes
+    const cashData = JSON.parse(cashCanvas.getAttribute('data-cash'));
+    const profitData = JSON.parse(cashCanvas.getAttribute('data-profit'));
+    const labels = JSON.parse(cashCanvas.getAttribute('data-labels'));
+    
+    // Create cash chart
+    cashCanvas.chart = new Chart(cashCanvas, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: cashData,
+                backgroundColor: Object.values(chartColors),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': PKR ' + context.parsed.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Create profit chart
+    profitCanvas.chart = new Chart(profitCanvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Profit (PKR)',
+                data: profitData,
+                backgroundColor: Object.values(chartColors),
+                borderWidth: 1,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'PKR ' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Profit: PKR ' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}
