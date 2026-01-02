@@ -109,7 +109,7 @@ class Bill(models.Model):
     @property
     def total_amount(self):
         """Total amount including fee."""
-        return self.amount + self.fee
+        return self.amount + (self.fee or 0)
     
     @property
     def is_overdue(self):
